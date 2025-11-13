@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乱数ジェネレーター</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- 変数定義 --- */
+        :root {
+            --bg-color: #f0f2f5;
+            --text-color: #1c1e21;
+            --card-bg-color: #ffffff;
+            --border-color: #dcdfe6;
+            --input-bg-color: #f5f5f5;
+            --primary-color: #007bff;
+            --primary-hover-color: #0056b3;
+            --hidden-bg-color: #343a40;
+            --hidden-text-color: #343a40;
+            --table-header-bg: #f8f9fa;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #121212;
+                --text-color: #e4e6eb;
+                --card-bg-color: #1e1e1e;
+                --border-color: #444;
+                --input-bg-color: #2c2c2c;
+                --primary-color: #0d6efd;
+                --primary-hover-color: #3d8bfd;
+                --hidden-bg-color: #e4e6eb;
+                --hidden-text-color: #e4e6eb;
+                --table-header-bg: #2c2c2c;
+            }
+        }
+
+        /* --- 基本スタイル --- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--card-bg-color);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 24px;
+            color: var(--primary-color);
+        }
+
+        /* --- フォームスタイル --- */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 16px;
+        }
+
+        .input-group input {
+            width: 100%;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+            font-size: 16px;
+        }
+
+        /* --- オプションスイッチ --- */
+        .options {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* --- ボタン --- */
+        .action-button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .action-button:hover {
+            background-color: var(--primary-hover-color);
+        }
+        
+        /* --- 結果エリア --- */
+        .result-container {
+            margin-top: 24px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 24px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .result-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        #copy-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #copy-btn svg {
+            fill: currentColor;
+        }
+
+        #result-output {
+            background-color: var(--input-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 16px;
+            min-height: 100px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        
+        /* --- 結果の特殊表示スタイル --- */
+        .hidden-number {
+            background-color: var(--hidden-bg-color);
+            color: var(--hidden-text-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        
+        .hidden-number.revealed {
+            background-color: transparent;
+            color: var(--text-color);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: center;
+        }
+        
+        th {
+            background-color: var(--table-header-bg);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>乱数ジェネレーター</h1>
+
+        <div class="form-group">
+            <label>範囲</label>
+            <div class="input-group">
+                <input type="number" id="min" value="1" placeholder="最小値">
+                <input type="number" id="max" value="100" placeholder="最大値">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="count">個数</label>
+            <input type="number" id="count" value="10" placeholder="生成する個数">
+        </div>
+
+        <div class="options">
+            <div class="switch-container">
+                <span>重複を含めない</span>
+                <label class="switch">
+                    <input type="checkbox" id="no-duplicates">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="switch-container">
+                <span>昇順で並び替え</span>
+                <label class="switch">
+                    <input type="checkbox" id="sort-asc">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="switch-container">
+                <span>表形式で表示</span>
+                <label class="switch">
+                    <input type="checkbox" id="table-view">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="switch-container">
+                <span>隠して表示 (クリックで表示)</span>
+                <label class="switch">
+                    <input type="checkbox" id="hide-view">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <button id="generate-btn" class="action-button">生成する</button>
+
+        <div class="result-container">
+            <div class="result-header">
+                <h2>結果</h2>
+                <button id="copy-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-copy" viewBox="0 0 16 16">
+                      <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z"/>
+                    </svg>
+                    <span id="copy-text">コピー</span>
+                </button>
+            </div>
+            <div id="result-output"></div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const minEl = document.getElementById('min');
+            const maxEl = document.getElementById('max');
+            const countEl = document.getElementById('count');
+            const noDuplicatesEl = document.getElementById('no-duplicates');
+            const sortAscEl = document.getElementById('sort-asc');
+            const tableViewEl = document.getElementById('table-view');
+            const hideViewEl = document.getElementById('hide-view');
+            const generateBtn = document.getElementById('generate-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const copyTextEl = document.getElementById('copy-text');
+            const resultOutput = document.getElementById('result-output');
+
+            let generatedNumbers = [];
+
+            generateBtn.addEventListener('click', () => {
+                const min = parseInt(minEl.value);
+                const max = parseInt(maxEl.value);
+                const count = parseInt(countEl.value);
+
+                // --- バリデーション ---
+                if (isNaN(min) || isNaN(max) || isNaN(count)) {
+                    alert('有効な数値を入力してください。');
+                    return;
+                }
+                if (min > max) {
+                    alert('最小値は最大値より小さい必要があります。');
+                    return;
+                }
+                if (count <= 0) {
+                    alert('個数は1以上である必要があります。');
+                    return;
+                }
+                
+                const noDuplicates = noDuplicatesEl.checked;
+                if (noDuplicates && (max - min + 1 < count)) {
+                    alert('重複なしの場合、範囲内の数値の数（' + (max - min + 1) + '個）が、指定された個数（' + count + '個）以上である必要があります。');
+                    return;
+                }
+                
+                // --- 乱数生成 ---
+                generatedNumbers = [];
+                if (noDuplicates) {
+                    const numberSet = new Set();
+                    while (numberSet.size < count) {
+                        const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+                        numberSet.add(randomNumber);
+                    }
+                    generatedNumbers = Array.from(numberSet);
+                } else {
+                    for (let i = 0; i < count; i++) {
+                        const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+                        generatedNumbers.push(randomNumber);
+                    }
+                }
+
+                // --- オプション適用 ---
+                if (sortAscEl.checked) {
+                    generatedNumbers.sort((a, b) => a - b);
+                }
+
+                // --- 表示 ---
+                displayResults();
+            });
+
+            function displayResults() {
+                resultOutput.innerHTML = '';
+                if (generatedNumbers.length === 0) return;
+                
+                const isTableView = tableViewEl.checked;
+                const isHideView = hideViewEl.checked;
+                
+                if (isTableView) {
+                    const table = document.createElement('table');
+                    const thead = document.createElement('thead');
+                    const tbody = document.createElement('tbody');
+                    const headerRow = document.createElement('tr');
+                    
+                    for(let i = 0; i < generatedNumbers.length; i++){
+                        const th = document.createElement('th');
+                        th.textContent = i + 1;
+                        headerRow.appendChild(th);
+                    }
+                    thead.appendChild(headerRow);
+                    
+                    const dataRow = document.createElement('tr');
+                    generatedNumbers.forEach(num => {
+                        const td = document.createElement('td');
+                        if (isHideView) {
+                            const span = document.createElement('span');
+                            span.className = 'hidden-number';
+                            span.textContent = num;
+                            td.appendChild(span);
+                        } else {
+                            td.textContent = num;
+                        }
+                        dataRow.appendChild(td);
+                    });
+                    tbody.appendChild(dataRow);
+                    
+                    table.appendChild(thead);
+                    table.appendChild(tbody);
+                    resultOutput.appendChild(table);
+
+                } else {
+                    const fragments = generatedNumbers.map(num => {
+                        if (isHideView) {
+                            return `<span class="hidden-number">${num}</span>`;
+                        }
+                        return num;
+                    });
+                    resultOutput.innerHTML = fragments.join(', ');
+                }
+
+                // 「隠して表示」のクリックイベント
+                if (isHideView) {
+                    resultOutput.querySelectorAll('.hidden-number').forEach(span => {
+                        span.addEventListener('click', () => {
+                            span.classList.toggle('revealed');
+                        });
+                    });
+                }
+            }
+            
+            // オプション変更時に表示を更新
+            [sortAscEl, tableViewEl, hideViewEl].forEach(el => {
+                el.addEventListener('change', () => {
+                     // 昇順ソートは再生成が必要ない場合でも適用
+                    if (el.id === 'sort-asc' && generatedNumbers.length > 0) {
+                        if (sortAscEl.checked) {
+                            generatedNumbers.sort((a, b) => a - b);
+                        } else {
+                            // ソートを解除する場合は再生成を促すか、シャッフルする
+                            // ここではシンプルに表示更新のみ
+                        }
+                    }
+                    displayResults();
+                });
+            });
+
+            copyBtn.addEventListener('click', () => {
+                if (generatedNumbers.length === 0) {
+                    alert('コピーする乱数がありません。');
+                    return;
+                }
+                const textToCopy = generatedNumbers.join(', ');
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    copyTextEl.textContent = 'コピー完了!';
+                    setTimeout(() => {
+                        copyTextEl.textContent = 'コピー';
+                    }, 2000);
+                }).catch(err => {
+                    alert('コピーに失敗しました: ' + err);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
