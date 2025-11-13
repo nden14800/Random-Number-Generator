@@ -57,7 +57,7 @@
 
         .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 800px; /* テーブル表示のために少し幅を広げます */
             background-color: var(--card-bg-color);
             border-radius: 8px;
             padding: 24px;
@@ -222,6 +222,7 @@
             word-wrap: break-word;
             white-space: pre-wrap;
             line-height: 1.6;
+            overflow-x: auto; /* テーブルがはみ出た場合にスクロールさせる */
         }
         
         /* --- 結果の特殊表示スタイル --- */
@@ -249,10 +250,12 @@
             border: 1px solid var(--border-color);
             padding: 8px;
             text-align: center;
+            min-width: 50px; /* セルの最小幅を確保 */
         }
         
         th {
             background-color: var(--table-header-bg);
+            font-weight: bold;
         }
 
     </style>
@@ -366,8 +369,8 @@
                 
                 // --- 乱数生成 ---
                 generatedNumbers = [];
+                const numberSet = new Set();
                 if (noDuplicates) {
-                    const numberSet = new Set();
                     while (numberSet.size < count) {
                         const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
                         numberSet.add(randomNumber);
@@ -402,29 +405,62 @@
                     const tbody = document.createElement('tbody');
                     const headerRow = document.createElement('tr');
                     
-                    for(let i = 0; i < generatedNumbers.length; i++){
-                        const th = document.createElement('th');
-                        th.textContent = i + 1;
-                        headerRow.appendChild(th);
+                    const maxRowsPerColumn = 10;
+                    const numColumns = Math.ceil(generatedNumbers.length / maxRowsPerColumn);
+
+                    // ヘッダーを作成 (例: No., 値, No., 値, ...)
+                    for (let i = 0; i < numColumns; i++) {
+                        const thIndex = document.createElement('th');
+                        thIndex.textContent = 'No.';
+                        headerRow.appendChild(thIndex);
+
+                        const thValue = document.createElement('th');
+                        thValue.textContent = '値';
+                        headerRow.appendChild(thValue);
                     }
                     thead.appendChild(headerRow);
-                    
-                    const dataRow = document.createElement('tr');
-                    generatedNumbers.forEach(num => {
-                        const td = document.createElement('td');
-                        if (isHideView) {
-                            const span = document.createElement('span');
-                            span.className = 'hidden-number';
-                            span.textContent = num;
-                            td.appendChild(span);
-                        } else {
-                            td.textContent = num;
-                        }
-                        dataRow.appendChild(td);
-                    });
-                    tbody.appendChild(dataRow);
-                    
                     table.appendChild(thead);
+
+                    // ボディを作成
+                    const numRowsToRender = Math.min(generatedNumbers.length, maxRowsPerColumn);
+                    for (let i = 0; i < numRowsToRender; i++) { // i は行インデックス (0-9)
+                        const dataRow = document.createElement('tr');
+                        // 各列セットに対してセルを追加
+                        for (let j = 0; j < numColumns; j++) { // j は列セットのインデックス (0, 1, 2, ...)
+                            const dataIndex = j * maxRowsPerColumn + i;
+
+                            if (dataIndex < generatedNumbers.length) {
+                                const number = generatedNumbers[dataIndex];
+                                
+                                // No.セル
+                                const tdIndex = document.createElement('td');
+                                tdIndex.textContent = dataIndex + 1;
+                                dataRow.appendChild(tdIndex);
+
+                                // 値セル
+                                const tdValue = document.createElement('td');
+                                if (isHideView) {
+                                    const span = document.createElement('span');
+                                    span.className = 'hidden-number';
+                                    span.textContent = number;
+                                    tdValue.appendChild(span);
+                                } else {
+                                    tdValue.textContent = number;
+                                }
+                                dataRow.appendChild(tdValue);
+
+                            } else {
+                                // データが存在しない場合は空のセルで埋める
+                                const tdIndex = document.createElement('td');
+                                tdIndex.innerHTML = '&nbsp;';
+                                dataRow.appendChild(tdIndex);
+                                const tdValue = document.createElement('td');
+                                tdValue.innerHTML = '&nbsp;';
+                                dataRow.appendChild(tdValue);
+                            }
+                        }
+                        tbody.appendChild(dataRow);
+                    }
                     table.appendChild(tbody);
                     resultOutput.appendChild(table);
 
@@ -438,7 +474,7 @@
                     resultOutput.innerHTML = fragments.join(', ');
                 }
 
-                // 「隠して表示」のクリックイベント
+                // 「隠して表示」のクリックイベントを再設定
                 if (isHideView) {
                     resultOutput.querySelectorAll('.hidden-number').forEach(span => {
                         span.addEventListener('click', () => {
@@ -451,16 +487,18 @@
             // オプション変更時に表示を更新
             [sortAscEl, tableViewEl, hideViewEl].forEach(el => {
                 el.addEventListener('change', () => {
-                     // 昇順ソートは再生成が必要ない場合でも適用
-                    if (el.id === 'sort-asc' && generatedNumbers.length > 0) {
-                        if (sortAscEl.checked) {
-                            generatedNumbers.sort((a, b) => a - b);
-                        } else {
-                            // ソートを解除する場合は再生成を促すか、シャッフルする
-                            // ここではシンプルに表示更新のみ
+                    if (generatedNumbers.length > 0) {
+                         if (el.id === 'sort-asc') {
+                            if (sortAscEl.checked) {
+                                generatedNumbers.sort((a, b) => a - b);
+                            } else {
+                                // ソートを解除する場合はシャッフルするか、生成時の順序に戻す必要があります。
+                                // この実装では、ソート解除は「再生成」で対応してもらうことを想定しています。
+                                // ここでは表示更新のみ行います。
+                            }
                         }
+                        displayResults();
                     }
-                    displayResults();
                 });
             });
 
@@ -476,7 +514,8 @@
                         copyTextEl.textContent = 'コピー';
                     }, 2000);
                 }).catch(err => {
-                    alert('コピーに失敗しました: ' + err);
+                    console.error('Copy failed: ', err);
+                    alert('コピーに失敗しました。');
                 });
             });
         });
